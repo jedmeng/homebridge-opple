@@ -1,0 +1,24 @@
+{
+  "name": "homebridge-opple",
+  "version": "0.1.1",
+  "description": "Opple light plugin for homebridge",
+  "main": "index.js",
+  "keywords": [
+    "opple",
+    "homebridge-plugin"
+  ],
+  "engines": {
+    "node": ">=8.0.0",
+    "homebridge": ">=0.2.0"
+  },
+  "author": "jedmeng",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jedmeng/homebridge-opple.git"
+  },
+  "dependencies": {
+    "crc": "^3.5.0",
+    "iconv-lite": "^0.4.19"
+  }
+}

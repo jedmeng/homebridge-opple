@@ -4,6 +4,9 @@ const packageFile = require("./package.json");
 
 let Accessory, Service, Characteristic, UUIDGen;
 
+const pluginName = 'homebridge-opple';
+const platformName = 'opple';
+
 class OpplePlatform {
   constructor(log, config, api) {
     this.log = log;
@@ -15,6 +18,8 @@ class OpplePlatform {
     this.Characteristic = Characteristic;
     this.UUIDGen = UUIDGen;
 
+    this.accessories = [];
+
     this.log.info("[OpplePlatform][INFO]********************************************************************");
     this.log.info("[OpplePlatform][INFO]          OpplePlatform v%s By Jedmeng", packageFile.version);
     this.log.info("[OpplePlatform][INFO] GitHub: https://github.com/jedmeng/homebridge-opple-light ");
@@ -22,10 +27,14 @@ class OpplePlatform {
     this.log.info("[OpplePlatform][INFO]start success...");
 
     this.api.on('didFinishLaunching', () => log("DidFinishLaunching"));
+
+    setInterval(this.search.bind(this), 1000 * 60 * 10);
+    this.search();
+    this.log("Fetching Opple lights...");
   }
 
-  accessories(callback) {
-    this.log("Fetching Opple lights...");
+  search() {
+    const currentMacs = this.accessories.map(accessory => accessory.device.mac);
 
     OppleDevice.search().then(list => {
       const accessories = list.map(device => {
@@ -34,13 +43,18 @@ class OpplePlatform {
           return;
         }
 
+        if (currentMacs.includes(device.mac)) {
+          return;
+        }
+
         if (device.model === 'Opple WIFI Light') {
           return new OppleLightAccessory(this, device, config);
         }
       }).filter(Boolean);
 
-      callback(accessories);
+      this.api.registerPlatformAccessories(pluginName, platformName, accessories);
     });
+
   }
 }
 
@@ -57,5 +71,5 @@ module.exports = function(homebridge) {
 
   // For platform plugin to be considered as dynamic platform plugin,
   // registerPlatform(pluginName, platformName, constructor, dynamic), dynamic must be true
-  homebridge.registerPlatform("homebridge-opple", "opple", OpplePlatform, true);
+  homebridge.registerPlatform(pluginName, platformName, OpplePlatform, true);
 };

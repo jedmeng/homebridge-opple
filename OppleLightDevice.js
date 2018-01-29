@@ -44,8 +44,8 @@ class OppleLightDevice extends OppleDevice {
       });
   }
 
-  keepUpdate() {
-    if (Date.now() - this.updateTime < 1000 * 10) {
+  keepUpdate(force = false) {
+    if (!force && Date.now() - this.updateTime < 1000 * 10) {
       return Promise.resolve();
     } else {
       return this.initState();
@@ -82,7 +82,9 @@ class OppleLightDevice extends OppleDevice {
     const newValue = value ? 1 : 0;
 
     return this.setStateAndCheck(check => {
-      this.sendMessage(MESSAGE_TYPE.POWER_ON, newValue).then(() => check(this.state.powerOn === value));
+      this.sendMessage(MESSAGE_TYPE.POWER_ON, newValue)
+        .then(() => this.keepUpdate(true))
+        .then(() => check(this.state.powerOn === value));
     }).then(value);
   }
 
@@ -109,7 +111,9 @@ class OppleLightDevice extends OppleDevice {
     const newValue = Math.round(value / 100 * 245 + 10);
 
     return this.setStateAndCheck(check => {
-      this.sendMessage(MESSAGE_TYPE.BRIGHT, newValue).then(() => check(this.state.brightness === newValue));
+      this.sendMessage(MESSAGE_TYPE.BRIGHT, newValue)
+        .then(() => this.keepUpdate(true))
+        .then(() => check(this.state.brightness === newValue));
     }).then(value);
   }
 
@@ -137,7 +141,9 @@ class OppleLightDevice extends OppleDevice {
     const newValue = Math.round(1e6 / value);
 
     return this.setStateAndCheck(check => {
-      this.sendMessage(MESSAGE_TYPE.COLOR_TEMPERATURE, newValue).then(() => check(this.state.colorTemperature === newValue));
+      this.sendMessage(MESSAGE_TYPE.COLOR_TEMPERATURE, newValue)
+        .then(() => this.keepUpdate(true))
+        .then(() => check(this.state.colorTemperature === newValue));
     }).then(value);
   }
 }

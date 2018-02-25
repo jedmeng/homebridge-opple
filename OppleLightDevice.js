@@ -45,7 +45,9 @@ class OppleLightDevice extends OppleDevice {
   }
 
   keepUpdate(force = false) {
-    if (!force && Date.now() - this.updateTime < 1000 * 10) {
+    if (!this.isInit) {
+      return this.asyncInit().then(() => this.initState());
+    } else if (!force && Date.now() - this.updateTime < 1000 * 10) {
       return Promise.resolve();
     } else {
       return this.initState();

@@ -1,11 +1,9 @@
 const OppleLightAccessory = require('./OppleLightAccessory');
-const OppleDevice = require("./OppleDevice");
-const packageFile = require("./package.json");
+const OppleLightDevice = require('./OppleLightDevice');
+const OppleDevice = require('./OppleDevice');
+const packageFile = require('./package.json');
 
 let Accessory, Service, Characteristic, UUIDGen;
-
-const pluginName = 'homebridge-opple';
-const platformName = 'opple';
 
 class OpplePlatform {
   constructor(log, config, api) {
@@ -18,48 +16,48 @@ class OpplePlatform {
     this.Characteristic = Characteristic;
     this.UUIDGen = UUIDGen;
 
-    this.accessories = [];
+    this.log.info('[OpplePlatform][INFO]********************************************************************');
+    this.log.info('[OpplePlatform][INFO]          OpplePlatform v%s By Jedmeng', packageFile.version);
+    this.log.info('[OpplePlatform][INFO] GitHub: https://github.com/jedmeng/homebridge-opple-light ');
+    this.log.info('[OpplePlatform][INFO]********************************************************************');
+    this.log.info('[OpplePlatform][INFO]start success...');
 
-    this.log.info("[OpplePlatform][INFO]********************************************************************");
-    this.log.info("[OpplePlatform][INFO]          OpplePlatform v%s By Jedmeng", packageFile.version);
-    this.log.info("[OpplePlatform][INFO] GitHub: https://github.com/jedmeng/homebridge-opple-light ");
-    this.log.info("[OpplePlatform][INFO]********************************************************************");
-    this.log.info("[OpplePlatform][INFO]start success...");
-
-    this.api.on('didFinishLaunching', () => log("DidFinishLaunching"));
-
-    setInterval(this.search.bind(this), 1000 * 60 * 10);
-    this.search();
-    this.log("Fetching Opple lights...");
+    this.api.on('didFinishLaunching', () => log('DidFinishLaunching'));
   }
 
-  search() {
-    const currentMacs = this.accessories.map(accessory => accessory.device.mac);
-
+  accessories(callback) {
+    this.log('Fetching Opple lights...');
     OppleDevice.search().then(list => {
-      const accessories = list.map(device => {
-        const config = this.config.devices && this.config.devices[device.mac];
-        if (!(this.config.enableAll || (config && !config.disabled))) {
-          return;
-        }
+      const deviceConfig = this.config.devices || {};
 
-        if (currentMacs.includes(device.mac)) {
-          return;
-        }
+      // 配置中的mac地址统一转成小写
+      Object.keys(deviceConfig)
+        .filter(key => key !== key.toLowerCase())
+        .forEach(key => {
+          const newKey = key.toLowerCase();
+          if (!deviceConfig[newKey]) {
+            deviceConfig[newKey] = deviceConfig[key];
+          }
+          delete deviceConfig[key];
+        });
 
-        if (device.model === 'Opple WIFI Light') {
-          return new OppleLightAccessory(this, device, config);
-        }
-      }).filter(Boolean);
+      const dynamicDevices = list
+        .filter(device => (this.config.enableAll || deviceConfig[device.mac]) && !deviceConfig[device.mac].disabled && device.mode == 'Opple WIFI Light')
+        .map(device => new OppleLightAccessory(this, device, deviceConfig[device.mac]));
 
-      this.api.registerPlatformAccessories(pluginName, platformName, accessories);
-    });
+      const addedMac = dynamicDevices.map(accessory => accessory.device.mac);
 
+      const staticDevices = Object.keys(deviceConfig)
+        .filter(key => !addedMac.includes(key) && !deviceConfig[key].disabled && deviceConfig[key].address)
+        .map(key => new OppleLightAccessory(this, new OppleLightDevice(deviceConfig[key]), deviceConfig[key]));
+
+      callback([...staticDevices, ...dynamicDevices]);
+    }, error => this.log(error));
   }
 }
 
 module.exports = function(homebridge) {
-  console.log("homebridge API version: " + homebridge.version);
+  console.log('homebridge API version: ' + homebridge.version);
 
   // Accessory must be created from PlatformAccessory Constructor
   Accessory = homebridge.platformAccessory;
@@ -68,8 +66,6 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   UUIDGen = homebridge.hap.uuid;
-
-  // For platform plugin to be considered as dynamic platform plugin,
-  // registerPlatform(pluginName, platformName, constructor, dynamic), dynamic must be true
-  homebridge.registerPlatform(pluginName, platformName, OpplePlatform, true);
+  
+  homebridge.registerPlatform('homebridge-opple', 'opple', OpplePlatform, false);
 };

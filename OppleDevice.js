@@ -5,10 +5,13 @@ const server = require('./server');
 const { MESSAGE_TYPE, SEARCH_RES_OFFSET, BROADCAST_PORT } = require('./const');
 
 class OppleDevice {
-  init(message) {
+  constructor(config = {}) {
+    this.localAddress = config.address;
     this.manufacturer = 'OPPLE';
     this.model = 'Opple Device';
+  }
 
+  init(message) {
     this.id = message.body.readUInt32BE(SEARCH_RES_OFFSET.ID_LOW);
     this.port = message.body.readUInt16BE(SEARCH_RES_OFFSET.PORT);
 
@@ -26,6 +29,19 @@ class OppleDevice {
 
     this.localAddress = server.getAddress();
     this.localPort = server.getPort();
+
+    this.isInit = true;
+  }
+
+  asyncInit() {
+    if (!this.localAddress) {
+      throw new Error();
+    }
+
+    const message = Message.build(MESSAGE_TYPE.SEARCH);
+
+    return server.sendAndReceive(message, BROADCAST_PORT, this.localAddress)
+      .then(inMessage => this.init(inMessage));
   }
 
   sendMessage(messageType, data, reply = false) {

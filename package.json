@@ -1,6 +1,6 @@
 {
   "name": "homebridge-opple",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Opple light plugin for homebridge",
   "main": "index.js",
   "keywords": [
